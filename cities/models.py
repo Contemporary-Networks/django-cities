@@ -226,11 +226,9 @@ class BaseCity(Place, SlugModel):
                                blank=True,
                                related_name='cities',
                                on_delete=SET_NULL_OR_CASCADE)
-    subregion = models.ForeignKey(Subregion,
-                                  null=True,
-                                  blank=True,
-                                  related_name='cities',
-                                  on_delete=SET_NULL_OR_CASCADE)
+    subregion = models.ManyToManyField(Subregion,
+                                       blank=True,
+                                       related_name='cities')
     location = PointField()
     population = models.IntegerField()
     elevation = models.IntegerField(null=True)
