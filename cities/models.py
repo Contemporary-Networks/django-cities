@@ -237,7 +237,7 @@ class BaseCity(Place, SlugModel):
 
     class Meta:
         abstract = True
-        unique_together = (('country', 'region', 'subregion', 'id', 'name'),)
+        unique_together = (('country', 'region', 'id', 'name'),)
         verbose_name_plural = "cities"
 
     @property
