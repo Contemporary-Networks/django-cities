@@ -1,30 +1,25 @@
+# Updated admin.py for ManyToMany subregion field
+
 from django.contrib import admin
-
 import swapper
-
 from .models import (Continent, Country, Region, Subregion, City, District,
                      PostalCode, AlternativeName)
-
 
 class CitiesAdmin(admin.ModelAdmin):
     raw_id_fields = ['alt_names']
 
-
 class ContinentAdmin(CitiesAdmin):
     list_display = ['name', 'code']
-
 
 class CountryAdmin(CitiesAdmin):
     list_display = ['name', 'code', 'code3', 'tld', 'phone', 'continent', 'area', 'population']
     search_fields = ['name', 'code', 'code3', 'tld', 'phone']
     filter_horizontal = ['neighbours']
 
-
 class RegionAdmin(CitiesAdmin):
     ordering = ['name_std']
     list_display = ['name_std', 'code', 'country']
     search_fields = ['name', 'name_std', 'code']
-
 
 class SubregionAdmin(CitiesAdmin):
     ordering = ['name_std']
@@ -32,19 +27,38 @@ class SubregionAdmin(CitiesAdmin):
     search_fields = ['name', 'name_std', 'code']
     raw_id_fields = ['alt_names', 'region']
 
-
 class CityAdmin(CitiesAdmin):
     ordering = ['name_std']
-    list_display = ['name_std', 'subregion', 'region', 'country', 'population']
+    
+    # UPDATED: Custom method to display counties since subregion is now ManyToMany
+    def display_counties(self, obj):
+        """Display all counties for this city"""
+        counties = obj.subregion.all()
+        if counties.exists():
+            return ", ".join([county.name for county in counties])
+        return "No counties"
+    display_counties.short_description = 'Counties'
+    
+    def county_count(self, obj):
+        """Show number of counties"""
+        return obj.subregion.count()
+    county_count.short_description = 'County Count'
+    
+    # UPDATED: Remove 'subregion' from list_display, add custom methods
+    list_display = ['name_std', 'display_counties', 'county_count', 'region', 'country', 'population']
     search_fields = ['name', 'name_std']
-    raw_id_fields = ['alt_names', 'region', 'subregion']
-
+    
+    # UPDATED: Use filter_horizontal for ManyToMany field, remove from raw_id_fields
+    raw_id_fields = ['alt_names', 'region']
+    filter_horizontal = ['subregion']
+    
+    # Add filtering by county
+    list_filter = ['region', 'country']
 
 class DistrictAdmin(CitiesAdmin):
     raw_id_fields = ['alt_names', 'city']
     list_display = ['name_std', 'city']
     search_fields = ['name', 'name_std']
-
 
 class AltNameAdmin(admin.ModelAdmin):
     ordering = ['name']
@@ -52,21 +66,24 @@ class AltNameAdmin(admin.ModelAdmin):
     list_filter = ['is_preferred', 'is_short', 'is_historic', 'language_code']
     search_fields = ['name']
 
-
 class PostalCodeAdmin(CitiesAdmin):
     ordering = ['code']
     list_display = ['code', 'subregion_name', 'region_name', 'country']
     search_fields = ['code', 'country__name', 'region_name', 'subregion_name']
 
-
+# Register admin classes
 if not swapper.is_swapped('cities', 'Continent'):
     admin.site.register(Continent, ContinentAdmin)
+
 if not swapper.is_swapped('cities', 'Country'):
     admin.site.register(Country, CountryAdmin)
+
 admin.site.register(Region, RegionAdmin)
 admin.site.register(Subregion, SubregionAdmin)
+
 if not swapper.is_swapped('cities', 'City'):
     admin.site.register(City, CityAdmin)
+
 admin.site.register(District, DistrictAdmin)
 admin.site.register(AlternativeName, AltNameAdmin)
 admin.site.register(PostalCode, PostalCodeAdmin)
