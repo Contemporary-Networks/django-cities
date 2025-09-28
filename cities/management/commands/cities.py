@@ -546,7 +546,15 @@ class Command(BaseCommand):
                                               country_code, item['name'], subregion_code)
                         defaults['subregion'] = None
 
+            subregion_to_set = defaults.pop('subregion', None)
+            
             city, created = City.objects.update_or_create(id=city_id, defaults=defaults)
+            
+            # Set M2M relationship after city creation
+            if subregion_to_set:
+                city.subregion.set([subregion_to_set])
+            else:
+                city.subregion.clear()
 
             if not self.call_hook('city_post', city, item):
                 continue
